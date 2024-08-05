@@ -1,0 +1,95 @@
+33c33
+<       double** local_y_pp, int local_m, int n, int local_n, 
+---
+>       double** local_y_pp, int local_m, int m, int n, int local_n, 
+36c36
+<       int n, int my_rank, MPI_Comm comm);
+---
+>       int n, int my_rank, MPI_Datatype coluna, MPI_Comm comm);
+44c44
+<       double local_y[], int local_m, int n, int local_n, 
+---
+>       double local_y[], int local_m, int n, int m, int local_n,int rank, 
+63,64c63,71
+<    Allocate_arrays(&local_A, &local_x, &local_y, local_m, n, local_n, comm);
+<    Read_matrix("A", local_A, m, local_m, n, my_rank, comm);
+---
+>    Allocate_arrays(&local_A, &local_x, &local_y, local_m, m, n, local_n, comm);
+>    
+>    MPI_Datatype coluna, colunas;
+>    MPI_Type_vector(m, 1, n, MPI_DOUBLE, &coluna);
+>    MPI_Type_commit(&coluna);
+>    MPI_Type_create_resized(coluna, 0, 1*sizeof(double), &colunas);
+>    MPI_Type_commit(&colunas);
+> 
+>    Read_matrix("A", local_A, m, local_n, n, my_rank, colunas, comm);
+75c82
+<    Mat_vect_mult(local_A, local_x, local_y, local_m, n, local_n, comm);
+---
+>    Mat_vect_mult(local_A, local_x, local_y, local_m, m, n, local_n, my_rank, comm);
+81c88,93
+<    Print_vector("y", local_y, m, local_m, my_rank, comm);
+---
+>     if(my_rank == 0)
+>     {
+>         printf("Vector y: \n");
+>         for(int i = 0;  i < m; i++)
+>             printf("%f ", local_y[i]);
+>     }
+89a102,103
+>    MPI_Type_free(&coluna);
+>    MPI_Type_free(&colunas);
+152a167
+>       int       m           /* in  */,   
+159c174
+<    *local_A_pp = malloc(local_m*n*sizeof(double));
+---
+>    *local_A_pp = malloc(local_n*m*sizeof(double));
+161c176
+<    *local_y_pp = malloc(local_m*sizeof(double));
+---
+>    *local_y_pp = malloc(m*sizeof(double));
+174c189
+<       int       local_m    /* in  */, 
+---
+>       int       local_n    /* in  */, 
+176a192
+>       MPI_Datatype colunas,
+191,192c207,208
+<       MPI_Scatter(A, local_m*n, MPI_DOUBLE, 
+<             local_A, local_m*n, MPI_DOUBLE, 0, comm);
+---
+>       MPI_Scatter(A, local_n, colunas, 
+>             local_A, local_n*m, MPI_DOUBLE, 0, comm);
+197,198c213,214
+<       MPI_Scatter(A, local_m*n, MPI_DOUBLE, 
+<             local_A, local_m*n, MPI_DOUBLE, 0, comm);
+---
+>       MPI_Scatter(A, local_n, colunas, 
+>             local_A, local_n*m, MPI_DOUBLE, 0, comm);
+231a248
+> /*-------------------------------------------------------------------*/
+302a320
+>       int       m          /* in  */,
+304a323
+>       int rank,
+310a330,331
+>    double* temp_y = malloc(m*sizeof(double));
+> 
+315a337,340
+>       
+>    for (int i = 0; i < m; i++) {
+>        temp_y[i] = 0.0;
+>    }
+317,320c342,344
+<    for (local_i = 0; local_i < local_m; local_i++) {
+<       local_y[local_i] = 0.0;
+<       for (j = 0; j < n; j++)
+<          local_y[local_i] += local_A[local_i*n+j]*x[j];
+---
+>    for (local_i = 0; local_i < local_n; local_i++) {
+>       for (j = 0; j < m; j++)
+>          temp_y[j] += local_A[local_i*m + j]*x[rank*local_n + local_i];
+321a346,347
+> 
+>    MPI_Allreduce(temp_y, local_y, m, MPI_DOUBLE, MPI_SUM, comm);
