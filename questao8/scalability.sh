@@ -12,9 +12,10 @@ generate_matrix() {
       matrix+="$count "
       count=$((count + 1))
     done
-    matrix+="\n"
+    matrix="${matrix% }"  # Remove trailing space
+    matrix+=$'\n'
   done
-  echo -e "$matrix"
+  echo "$matrix"
 }
 
 # Function to generate a vector as natural number counts
@@ -22,14 +23,14 @@ generate_vector() {
   local size=$1
   local vector=""
   for ((i = 1; i <= size; i++)); do
-    vector+="$i\n"
+    vector+="$i"$'\n'
   done
-  echo -e "$vector"
+  echo "$vector"
 }
 
 # Arrays for number of processors and matrix sizes
-processors=(1 2 4)
-sizes=(256 512 1024)
+processors=(1 2 4 8)
+sizes=(256 512 1024 2048)
 
 # Output CSV file
 output_file="results.csv"
@@ -56,7 +57,7 @@ for p in "${processors[@]}"; do
     #echo "$vector"
 
     # Run the MPI program
-    result=$(mpiexec -n $p ./main <<EOF
+    result=$(mpiexec -n $p main <<EOF
 $rows
 $cols
 $matrix

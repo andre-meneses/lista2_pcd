@@ -1,7 +1,7 @@
 #!/bin/bash
 
-processors=(1 2 4)
-sizes=(50000 100000 200000)
+processors=(1 2 4 8)
+sizes=(2000000 4000000 8000000 16000000)
 repeats=10
 
 # Output CSV file
