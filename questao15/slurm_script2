@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --partition=intel-128 
+#SBATCH --time=0-1:5
+#SBATCH --exclusive
+#SBATCH --output=test_output_%j.txt
+
+# CSV header
+echo "cores,n,time" > timings_2.csv
+
+# Array of n values
+ns=(200000 400000 800000 1600000 3200000 6400000)
+
+# Loop over number of cores
+for cores in 1 2 4 8 16 32; do
+    # Loop over each n value
+    for n in "${ns[@]}"; do
+        # Run the program
+        output=$(srun -n ${cores} odd_even g ${n} 2>&1)
+        # Extract the timing information from the output
+        real_time=$(echo "$output" | grep "Maximum elapsed time" | awk -F'= ' '{print $2}' | awk '{print $1}')
+
+        # Output to CSV
+        echo "${cores},${n},${real_time}" >> timings_2.csv
+    done
+done
+
